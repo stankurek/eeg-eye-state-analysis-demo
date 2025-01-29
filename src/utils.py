@@ -1,5 +1,6 @@
 from scipy.io import arff
 import pandas
+import matplotlib.pyplot as pyplot
 
 def load_eeg_arff(file_path, verbose=True):
   """
@@ -37,3 +38,14 @@ def get_sampling_rate_from_dataframe(df, duration_in_seconds):
     except Exception as e:
         print(f"An error occurred while calculating sampling rate: {e}")
         return None
+      
+def visualize_eye_state_over_time(df, sampling_rate):
+    df["Time (s)"] = df.index / sampling_rate
+    pyplot.figure(figsize=(12, 6))
+    pyplot.plot(df["Time (s)"], df["eyeDetection"], label="Eye State (0=open, 1=closed)", color="black")
+    pyplot.xlabel("Time (seconds)")
+    pyplot.ylabel("Eye State")
+    pyplot.title("Eye State Over Time")
+    pyplot.yticks([0, 1, 1.2], ["Open", "Closed", ""])
+    pyplot.legend(loc="upper right")
+    pyplot.show()
