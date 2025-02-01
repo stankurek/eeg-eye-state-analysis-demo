@@ -1,7 +1,7 @@
 from scipy.io import arff
 import pandas
 import matplotlib.pyplot as pyplot
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, hilbert
 import numpy
 
 
@@ -44,7 +44,7 @@ def get_sampling_rate_from_dataframe(df, duration_in_seconds):
         return None
 
 
-def visualize_eye_state_over_time(df, sampling_rate):
+def analyze_eye_state_over_time(df, sampling_rate):
     df["Time (s)"] = df.index / sampling_rate
     pyplot.figure(figsize=(12, 6))
     pyplot.plot(
@@ -133,4 +133,63 @@ def analyze_alpha_stability(df, eeg_channel="O1", sampling_rate=128):
     pyplot.ylabel("Average Alpha Amplitude (µV)")
     pyplot.title(f"Stability of Alpha Band (8-13 Hz) - Channel {eeg_channel}")
     pyplot.legend()
+    pyplot.show()
+
+
+def analyze_alpha_band_activity_with_means(df, eeg_channel="O1", sampling_rate=128):
+    df["Time (s)"] = df.index / sampling_rate
+
+    filtered_signal = alpha_bandpass_filter(df[eeg_channel].values, fs=sampling_rate)
+
+    analytic_signal = hilbert(filtered_signal)
+    instantaneous_phase = numpy.unwrap(numpy.angle(analytic_signal))
+    instantaneous_frequency = numpy.diff(instantaneous_phase) * (
+        sampling_rate / (2.0 * numpy.pi)
+    )
+
+    time_axis = df["Time (s)"].iloc[1:].values
+
+    open_eyes_freq = []
+    closed_eyes_freq = []
+
+    pyplot.figure(figsize=(12, 6))
+
+    for i in range(len(time_axis) - 1):
+        if 8 <= instantaneous_frequency[i] <= 13:
+            color = "blue" if df["eyeDetection"].iloc[i + 1] == 0 else "red"
+            pyplot.plot(
+                [time_axis[i], time_axis[i + 1]],
+                [instantaneous_frequency[i], instantaneous_frequency[i + 1]],
+                color=color,
+            )
+
+            if df["eyeDetection"].iloc[i + 1] == 0:
+                open_eyes_freq.append(instantaneous_frequency[i])
+            else:
+                closed_eyes_freq.append(instantaneous_frequency[i])
+
+    mean_open_eyes = numpy.mean(open_eyes_freq) if open_eyes_freq else 0
+    mean_closed_eyes = numpy.mean(closed_eyes_freq) if closed_eyes_freq else 0
+
+    pyplot.axhline(
+        mean_open_eyes,
+        color="blue",
+        linestyle="--",
+        linewidth=2,
+        label=f"Mean Open Eyes: {mean_open_eyes:.2f} Hz",
+    )
+    pyplot.axhline(
+        mean_closed_eyes,
+        color="red",
+        linestyle="--",
+        linewidth=2,
+        label=f"Mean Closed Eyes: {mean_closed_eyes:.2f} Hz",
+    )
+
+    pyplot.xlabel("Time (seconds)")
+    pyplot.ylabel("Frequency (Hz)")
+    pyplot.title(f"Alpha Band Activity (8-13 Hz) with Means - Channel {eeg_channel}")
+    pyplot.ylim(6, 15)
+    pyplot.legend()
+    pyplot.grid(True)
     pyplot.show()
