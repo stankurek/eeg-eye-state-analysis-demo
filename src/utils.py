@@ -4,29 +4,31 @@ import matplotlib.pyplot as pyplot
 from scipy.signal import butter, filtfilt
 import numpy
 
+
 def load_eeg_arff(file_path, verbose=True):
-  """
-  Loads EEG data in arff format.
-  Returns DataFrame or None.
-  """
-  try:
-    data, metadata = arff.loadarff(file_path)
-    df = pandas.DataFrame(data)
+    """
+    Loads EEG data in arff format.
+    Returns DataFrame or None.
+    """
+    try:
+        data, metadata = arff.loadarff(file_path)
+        df = pandas.DataFrame(data)
 
-    if df.empty:
-      print("The file is empty or contains no data")
-      return None
-  
-    df['eyeDetection'] = df['eyeDetection'].str.decode('utf-8').astype(int)
+        if df.empty:
+            print("The file is empty or contains no data")
+            return None
 
-    if verbose:
-      print("EEG data:")
-      print(df.head())
+        df["eyeDetection"] = df["eyeDetection"].str.decode("utf-8").astype(int)
 
-    return df
-  except Exception as e:
-    print(f"An error occurred during loading data: {e}")
-    return None
+        if verbose:
+            print("EEG data:")
+            print(df.head())
+
+        return df
+    except Exception as e:
+        print(f"An error occurred during loading data: {e}")
+        return None
+
 
 def get_sampling_rate_from_dataframe(df, duration_in_seconds):
     try:
@@ -41,10 +43,16 @@ def get_sampling_rate_from_dataframe(df, duration_in_seconds):
         print(f"An error occurred while calculating sampling rate: {e}")
         return None
 
+
 def visualize_eye_state_over_time(df, sampling_rate):
     df["Time (s)"] = df.index / sampling_rate
     pyplot.figure(figsize=(12, 6))
-    pyplot.plot(df["Time (s)"], df["eyeDetection"], label="Eye State (0=open, 1=closed)", color="black")
+    pyplot.plot(
+        df["Time (s)"],
+        df["eyeDetection"],
+        label="Eye State (0=open, 1=closed)",
+        color="black",
+    )
     pyplot.xlabel("Time (seconds)")
     pyplot.ylabel("Eye State")
     pyplot.title("Eye State Over Time")
@@ -57,7 +65,7 @@ def alpha_bandpass_filter(data, fs=128):
     """
     Filters the input signal to retain only alpha waves (8-13 Hz).
     """
-    
+
     # Alpha parameters
     lowcut = 8
     highcut = 13
@@ -78,7 +86,8 @@ def alpha_bandpass_filter(data, fs=128):
     return filtfilt(b, a, data)
 
 
-def analyze_alpha_stability(df, eeg_channel="O1", window_size=5, sampling_rate=128):
+def analyze_alpha_stability(df, eeg_channel="O1", sampling_rate=128):
+    window_size = 5
     samples_per_window = window_size * sampling_rate
 
     df["Time (s)"] = df.index / sampling_rate
